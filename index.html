@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War! Card Game</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #2d2d2d; padding: 20px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); text-align: center; width: 400px; }
+        .stats-grid { display: flex; justify-content: space-between; margin: 20px 0; }
+        .stat-box { flex: 1; padding: 10px; border-radius: 8px; margin: 0 5px; }
+        .p1-box { background: #1f6aa5; }
+        .p2-box { background: #ce4444; }
+        #log { background: #000; padding: 15px; height: 120px; border-radius: 8px; margin-bottom: 20px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #444; color: #0f0; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #45a049; }
+        .options { margin-bottom: 15px; font-size: 14px; }
+        #war-stat { color: #aaa; margin-bottom: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>WAR</h1>
+    
+    <div class="options">
+        <input type="checkbox" id="jokerToggle"> Include 2 Jokers
+    </div>
+
+    <button id="startBtn" onclick="setupGame()">Start New Game</button>
+
+    <div class="stats-grid">
+        <div class="stat-box p1-box">
+            <div>Player 1</div>
+            <strong id="p1Count">0</strong> Cards
+        </div>
+        <div class="stat-box p2-box">
+            <div>Player 2</div>
+            <strong id="p2Count">0</strong> Cards
+        </div>
+    </div>
+
+    <small id="war-stat">Wars Occurred: 0</small>
+    <div id="log">Press Start! (Each starts with 2 Aces)</div>
+
+    <button id="drawBtn" onclick="playRound()" disabled style="margin-top: 10px; background: #2196F3;">Draw Card</button>
+</div>
+
+<script>
+    let p1Hand = [];
+    let p2Hand = [];
+    let warCount = 0;
+
+    function setupGame() {
+        const suits = ['♠', '♥', '♦', '♣'];
+        const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        const values = [2,3,4,5,6,7,8,9,10,11,12,13,14];
+        
+        let deck = [];
+        suits.forEach(s => {
+            ranks.forEach((r, i) => {
+                deck.push({rank: r, suit: s, val: values[i]});
+            });
+        });
+
+        // Pull out Aces
+        let aces = deck.filter(c => c.rank === 'A');
+        let remaining = deck.filter(c => c.rank !== 'A');
+
+        // Add Jokers
+        if(document.getElementById('jokerToggle').checked) {
+            remaining.push({rank: 'Joker', suit: '🃏', val: 15});
+            remaining.push({rank: 'Joker', suit: '🃏', val: 15});
+        }
+
+        // Shuffle remaining
+        remaining.sort(() => Math.random() - 0.5);
+
+        // Deal: 2 Aces each + split remaining
+        let mid = Math.floor(remaining.length / 2);
+        p1Hand = [...aces.slice(0, 2), ...remaining.slice(0, mid)];
+        p2Hand = [...aces.slice(2, 4), ...remaining.slice(mid)];
+
+        // Shuffle individual hands
+        p1Hand.sort(() => Math.random() - 0.5);
+        p2Hand.sort(() => Math.random() - 0.5);
+
+        warCount = 0;
+        document.getElementById('drawBtn').disabled = false;
+        updateUI("Deck shuffled! 52 cards in play.<br>Both started with 2 Aces.");
+    }
+
+    function playRound() {
+        if(p1Hand.length === 0 || p2Hand.length === 0) return;
+
+        let c1 = p1Hand.shift();
+        let c2 = p2Hand.shift();
+        let result = `P1: ${c1.rank}${c1.suit} vs P2: ${c2.rank}${c2.suit}<br>`;
+
+        if(c1.val > c2.val) {
+            p1Hand.push(c1, c2);
+            result += "Result: Player 1 Wins Round";
+        } else if (c2.val > c1.val) {
+            p2Hand.push(c1, c2);
+            result += "Result: Player 2 Wins Round";
+        } else {
+            warCount++;
+            p1Hand.push(c1);
+            p2Hand.push(c2);
+            result += "Result: TIE! Cards to back of hands.";
+        }
+
+        updateUI(result);
+        checkWinner();
+    }
+
+    function updateUI(msg) {
+        document.getElementById('log').innerHTML = msg;
+        document.getElementById('p1Count').innerText = p1Hand.length;
+        document.getElementById('p2Count').innerText = p2Hand.length;
+        document.getElementById('war-stat').innerText = `Wars Occurred: ${warCount}`;
+    }
+
+    function checkWinner() {
+        if(p1Hand.length === 0) {
+            updateUI("GAME OVER<br>Player 2 Captures Everything!");
+            document.getElementById('drawBtn').disabled = true;
+        } else if(p2Hand.length === 0) {
+            updateUI("GAME OVER<br>Player 1 Captures Everything!");
+            document.getElementById('drawBtn').disabled = true;
+        }
+    }
+</script>
+
+</body>
+</html>
+
